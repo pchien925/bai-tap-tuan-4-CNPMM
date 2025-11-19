@@ -1,22 +1,44 @@
 import axios from './axios.customize';
 
-const URL_API = "/v1/api";
+const URL_API = "/v1/api"; // giữ nguyên /v1/api
 
+// ===== User APIs =====
 const createUserApi = (name, email, password) => {
-  const URL_REGISTER = `${URL_API}/register`;
-  const data = { name, email, password };
-  return axios.post(URL_REGISTER, data);
+  return axios.post(`${URL_API}/users/register`, { name, email, password });
 };
 
 const loginApi = (email, password) => {
-  const URL_LOGIN = `${URL_API}/login`;
-  const data = { email, password };
-  return axios.post(URL_LOGIN, data);
+  return axios.post(`${URL_API}/users/login`, { email, password });
 };
 
 const getUserApi = () => {
-  const URL_USER = `${URL_API}/user`;
-  return axios.get(URL_USER);
+  return axios.get(`${URL_API}/users/user`);
 };
 
-export { createUserApi, loginApi, getUserApi };
+// ===== Product APIs =====
+const getProductsApi = (page = 1, limit = 10) => {
+  return axios
+    .get(`${URL_API}/products?page=${page}&limit=${limit}`);
+};
+
+const createProductApi = (data) => {
+  return axios.post(`${URL_API}/products`, data);
+};
+
+const updateProductApi = (id, data) => {
+  return axios.put(`${URL_API}/products/${id}`, data);
+};
+
+const deleteProductApi = (id) => {
+  return axios.delete(`${URL_API}/products/${id}`);
+};
+
+export {
+  createUserApi,
+  loginApi,
+  getUserApi,
+  getProductsApi,
+  createProductApi,
+  updateProductApi,
+  deleteProductApi
+};

@@ -1,44 +1,92 @@
 require('dotenv').config();
 
-// Import các module cần thiết
 const express = require('express');
 const cors = require('cors');
+const { sequelize, testConnection } = require('./config/database');
 const configViewEngine = require('./config/viewEngine');
+
+// Middleware
+const { apiLimiter, authLimiter } = require('./middleware/rateLimit');
+
+// Routes
 const apiRoutes = require('./routes/api');
-const { sequelize, testConnection } = require('./config/database'); // Dùng Sequelize
+
+// Controllers
 const { getHomepage } = require('./controllers/homeController');
+const seed = require('./seeders/seed');
 
 const app = express();
 const port = process.env.PORT || 8888;
 
-// Cấu hình middleware
+// =======================
+// Middleware
+// =======================
+
+// Trust proxy nếu deploy phía Nginx / Cloudflare
+app.set('trust proxy', 1);
+
+// CORS
 app.use(cors());
+
+// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cấu hình template engine
+// Logger tất cả request
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+    next();
+});
+
+// View engine
 configViewEngine(app);
 
-// Cấu hình routes
-app.get('/', getHomepage); // Trang chủ
-app.use('/v1/api', apiRoutes); // API routes
+// =======================
+// Public routes
+// =======================
+app.get('/', getHomepage);
 
-// Kết nối DB (MySQL) và khởi động server
+// Rate limit cho login/register
+app.post('/v1/api/login', authLimiter);
+app.post('/v1/api/register', authLimiter);
+
+// =======================
+// API routes
+// =======================
+app.use('/v1/api', apiLimiter); // Giới hạn còn lại
+app.use('/v1/api', apiRoutes);   // Router chính gồm user/product
+
+// =======================
+// Middleware xử lý lỗi
+// =======================
+app.use((err, req, res, next) => {
+    console.error('❌ Error:', err.stack);
+    res.status(500).json({
+        EC: -1,
+        EM: 'Lỗi server',
+        details: err.message
+    });
+});
+
+// =======================
+// DB sync & start server
+// =======================
 (async () => {
     try {
-        // Kiểm tra kết nối
         await testConnection();
+        console.log('✅ MySQL Database connected successfully.');
 
-        // Đồng bộ models (tạo bảng nếu chưa có)
-        await sequelize.sync({ alter: true }); // alter: true → tự động cập nhật bảng nếu có thay đổi
-        console.log('MySQL Database synced successfully.');
+        // Chỉ sync DB tự động khi là dev
+        if (process.env.NODE_ENV !== 'production') {
+            await sequelize.sync({ alter: true });
+            console.log('✅ Database synced (alter: true)');
+        }
+        await seed();
 
-        // Khởi động server
         app.listen(port, () => {
-            console.log(`Backend Nodejs App listening on port ${port}`);
-            console.log(`http://localhost:${port}`);
+            console.log(`🚀 Server running on http://localhost:${port}`);
         });
     } catch (error) {
-        console.log(">>> Error connecting to MySQL DB: ", error);
+        console.error('❌ Error connecting to MySQL DB: ', error);
     }
 })();

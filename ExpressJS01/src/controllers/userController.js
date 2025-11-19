@@ -36,7 +36,6 @@ const forgotPassword = async (req, res) => {
     try {
         const user = await getUserByEmail(email);
         if (!user) {
-            // Bảo mật: không nói user có tồn tại hay không
             return res.status(200).json({
                 EC: 0,
                 EM: "Nếu email tồn tại, link đặt lại mật khẩu đã được gửi!"
@@ -67,13 +66,6 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { password } = req.body;
-
-    if (!password || password.length < 6) {
-        return res.status(400).json({
-            EC: 1,
-            EM: "Mật khẩu phải có ít nhất 6 ký tự"
-        });
-    }
 
     try {
         const user = await getUserByResetToken(token);

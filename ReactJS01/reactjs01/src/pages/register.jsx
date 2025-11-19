@@ -12,16 +12,16 @@ const RegisterPage = () => {
 
     const res = await createUserApi(name, email, password);
 
-    if (res) {
+    if (res?.EC === 0) { 
       notification.success({
-        message: "CREATE USER",
-        description: "Success",
+        message: "Đăng ký thành công!",
+        description: "Vui lòng đăng nhập",
       });
       navigate('/login');
     } else {
       notification.error({
-        message: "CREATE USER",
-        description: "Error",
+        message: "Đăng ký thất bại",
+        description: res?.EM || "Có lỗi xảy ra",
       });
     }
   };

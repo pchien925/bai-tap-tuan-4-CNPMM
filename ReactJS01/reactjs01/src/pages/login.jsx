@@ -3,7 +3,7 @@ import { Button, Col, Form, Input, notification, Row, Divider } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { loginApi } from '../util/api';
-import { AuthContext } from '../component/context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -13,19 +13,21 @@ const LoginPage = () => {
     const { email, password } = values;
     const res = await loginApi(email, password);
 
-    if (res?.access_token) {
-      localStorage.setItem("access_token", res.access_token);
+    if (res?.EC === 0 && res.DT) {
+      localStorage.setItem("access_token", res.DT.access_token);
 
-      // Bật lại loading để App.jsx gọi API lấy thông tin user mới nhất
       setAppLoading(true);
 
       setAuth({
         isAuthenticated: true,
         user: {
-          email: res.email || "",
-          name: res.name || "",
+          email: res.DT.user?.email || "",
+          name: res.DT.user?.name || "",
+          role: res.DT.user?.role || "",
         },
       });
+
+      setAppLoading(false); 
 
       notification.success({
         message: "Đăng nhập thành công!",
@@ -36,7 +38,7 @@ const LoginPage = () => {
     } else {
       notification.error({
         message: "Đăng nhập thất bại",
-        description: res?.message || "Email hoặc mật khẩu không đúng!",
+        description: res?.EM || "Email hoặc mật khẩu không đúng!",
       });
     }
   };

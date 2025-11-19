@@ -10,13 +10,14 @@ const UserPage = () => {
     const fetchUser = async () => {
       setLoading(true);
       const res = await getUserApi();
+      console.log('res', res);
       if (res?.message === "Unauthorized") {
         notification.error({
           message: "Unauthorized",
           description: res.message,
         });
       } else {
-        setDataSource(res);
+        setDataSource(res?.DT);
       }
       setLoading(false);
     };
@@ -27,8 +28,8 @@ const UserPage = () => {
   const columns = [
     {
       title: 'Id',
-      dataIndex: '_id',
-      key: '_id',
+      dataIndex: 'id',
+      key: 'id',
     },
     {
       title: 'Email',
@@ -54,7 +55,7 @@ const UserPage = () => {
         loading={loading}
         dataSource={dataSource}
         columns={columns}
-        rowKey="_id"
+        rowKey="id"
       />
     </div>
   );

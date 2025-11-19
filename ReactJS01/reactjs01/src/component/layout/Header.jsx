@@ -1,27 +1,16 @@
-import React, { useContext, useState } from 'react';
-import { HomeOutlined, UsergroupAddOutlined, SettingOutlined, LoginOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Menu, Spin } from 'antd';
+import { HomeOutlined, LoginOutlined, LogoutOutlined, UsergroupAddOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Menu } from 'antd';
+import { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../../context/AuthContext';
 
 const Header = () => {
   const navigate = useNavigate();
-  const context = useContext(AuthContext);
+  const { auth, setAuth, appLoading } = useContext(AuthContext);
 
-    const [current, setCurrent] = useState('home');
-  // Nếu context chưa sẵn sàng (đang loading) → hiển thị loading nhẹ thay vì crash
-  if (!context) {
-    return (
-      <Menu mode="horizontal" style={{ justifyContent: 'flex-end' }}>
-        <Menu.Item key="loading">
-          <Spin size="small" /> Đang tải...
-        </Menu.Item>
-      </Menu>
-    );
-  }
+  if (appLoading) return null;
 
-  // Bây giờ mới được destructuring an toàn
-  const { isAuthenticated, user, setAuth } = context;
+  const { isAuthenticated, user } = auth;
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -33,59 +22,34 @@ const Header = () => {
   };
 
   const items = [
-    {
-      label: <Link to="/">Home</Link>,
-      key: 'home',
-      icon: <HomeOutlined />,
-    },
+    { label: <Link to="/">Home</Link>, key: 'home', icon: <HomeOutlined /> },
+
     ...(isAuthenticated
       ? [
-          {
-            label: <Link to="/users">Users</Link>,
-            key: 'users',
-            icon: <UsergroupAddOutlined />,
-          },
+          { label: <Link to="/user">Danh sách User</Link>, key: 'user', icon: <UsergroupAddOutlined /> },
+          { label: <Link to="/products">Sản phẩm</Link>, key: 'products', icon: <AppstoreOutlined /> },
         ]
       : []),
 
-    // Menu tài khoản
     {
-      label: isAuthenticated ? `Xin chào, ${user?.email || 'User'}` : 'Tài khoản',
       key: 'account',
-      icon: <SettingOutlined />,
+      label: isAuthenticated ? (<span><UserOutlined /> {user?.name || user?.email || 'User'}</span>) : 'Tài khoản',
       children: isAuthenticated
-        ? [
-            {
-              label: (
-                <span onClick={handleLogout} style={{ color: '#ff4d4f' }}>
-                  <LogoutOutlined /> Đăng xuất
-                </span>
-              ),
-              key: 'logout',
-            },
-          ]
+        ? [{ label: <span onClick={handleLogout} style={{ color: '#ff4d4f' }}><LogoutOutlined /> Đăng xuất</span>, key: 'logout' }]
         : [
-            {
-              label: <Link to="/login"><LoginOutlined /> Đăng nhập</Link>,
-              key: 'login',
-            },
-            {
-              label: <Link to="/register">Đăng ký</Link>,
-              key: 'register',
-            },
+            { label: <Link to="/login"><LoginOutlined /> Đăng nhập</Link>, key: 'login' },
+            { label: <Link to="/register">Đăng ký</Link>, key: 'register' },
           ],
     },
   ];
 
-
-
   return (
     <Menu
-      onClick={(e) => setCurrent(e.key)}
-      selectedKeys={[current]}
       mode="horizontal"
       items={items}
-      style={{ justifyContent: 'space-between' }}
+      style={{ justifyContent: 'space-between', lineHeight: '60px', fontSize: '16px' }}
+      theme="dark"
+      selectable={false}
     />
   );
 };
