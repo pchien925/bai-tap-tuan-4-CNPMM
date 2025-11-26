@@ -22,10 +22,12 @@ const handleLogin = async (req, res) => {
 }
 
 const getUser = async (req, res) => {
-    const data = await getUserService();
-    return res.status(200).json(data)
-}
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
+    const data = await getUserService(page, limit);
+    return res.status(200).json(data);
+};
 const getAccount = async (req, res) => {
     return res.status(200).json(req.user)
 }

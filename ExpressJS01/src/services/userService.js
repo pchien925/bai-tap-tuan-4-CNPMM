@@ -96,14 +96,23 @@ const loginService = async (email, password) => {
     }
 };
 
-const getUserService = async () => {
+const getUserService = async (page = 1, limit = 10) => {
     try {
-        const users = await User.findAll({
-            attributes: { exclude: ['password'] }
+        const offset = (page - 1) * limit;
+
+        const { count, rows } = await User.findAndCountAll({
+            attributes: { exclude: ['password'] },
+            offset,
+            limit,
+            order: [['id', 'ASC']] // hoặc order theo name, createdAt...
         });
+
         return {
             EC: 0,
-            DT: users
+            DT: rows,
+            total: count,
+            page,
+            limit
         };
     } catch (error) {
         console.log(error);

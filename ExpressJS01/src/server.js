@@ -4,16 +4,30 @@ const express = require('express');
 const cors = require('cors');
 const { sequelize, testConnection } = require('./config/database');
 const configViewEngine = require('./config/viewEngine');
-
-// Middleware
-const { apiLimiter, authLimiter } = require('./middleware/rateLimit');
-
-// Routes
+const { swaggerDocs } = require('./config/swagger');
 const apiRoutes = require('./routes/api');
-
-// Controllers
 const { getHomepage } = require('./controllers/homeController');
 const seed = require('./seeders/seed');
+
+const { apiLimiter, authLimiter } = require('./middleware/rateLimit');
+
+// =======================
+// Elasticsearch
+// =======================
+const { Client } = require('@elastic/elasticsearch');
+const esClient = new Client({
+  node: process.env.ELASTIC_NODE || 'http://localhost:9200',
+  tls: { rejectUnauthorized: false }
+});
+
+(async () => {
+  try {
+    const health = await esClient.cluster.health();
+    console.log('✅ Elasticsearch cluster health:', health);
+  } catch (err) {
+    console.error('❌ Elasticsearch connection error:', err);
+  }
+})();
 
 const app = express();
 const port = process.env.PORT || 8888;
@@ -21,21 +35,15 @@ const port = process.env.PORT || 8888;
 // =======================
 // Middleware
 // =======================
-
-// Trust proxy nếu deploy phía Nginx / Cloudflare
 app.set('trust proxy', 1);
-
-// CORS
 app.use(cors());
-
-// Body parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Logger tất cả request
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-    next();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
 });
 
 // View engine
@@ -53,40 +61,42 @@ app.post('/v1/api/register', authLimiter);
 // =======================
 // API routes
 // =======================
-app.use('/v1/api', apiLimiter); // Giới hạn còn lại
-app.use('/v1/api', apiRoutes);   // Router chính gồm user/product
+app.use('/v1/api', apiLimiter);
+app.use('/v1/api', apiRoutes);
 
 // =======================
 // Middleware xử lý lỗi
 // =======================
 app.use((err, req, res, next) => {
-    console.error('❌ Error:', err.stack);
-    res.status(500).json({
-        EC: -1,
-        EM: 'Lỗi server',
-        details: err.message
-    });
+  console.error('❌ Error:', err.stack);
+  res.status(500).json({
+    EC: -1,
+    EM: 'Lỗi server',
+    details: err.message
+  });
 });
 
 // =======================
 // DB sync & start server
 // =======================
 (async () => {
-    try {
-        await testConnection();
-        console.log('✅ MySQL Database connected successfully.');
+  try {
+    await testConnection();
+    console.log('✅ MySQL Database connected successfully.');
 
-        // Chỉ sync DB tự động khi là dev
-        if (process.env.NODE_ENV !== 'production') {
-            await sequelize.sync({ alter: true });
-            console.log('✅ Database synced (alter: true)');
-        }
-        await seed();
-
-        app.listen(port, () => {
-            console.log(`🚀 Server running on http://localhost:${port}`);
-        });
-    } catch (error) {
-        console.error('❌ Error connecting to MySQL DB: ', error);
+    if (process.env.NODE_ENV !== 'production') {
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database synced (alter: true)');
     }
+
+    await seed();
+    swaggerDocs(app); // chạy Swagger Docs
+
+    app.listen(port, () => {
+      console.log(`🚀 Server running on http://localhost:${port}`);
+      console.log(`📄 Swagger Docs running at http://localhost:${port}/docs`);
+    });
+  } catch (error) {
+    console.error('❌ Error connecting to MySQL DB: ', error);
+  }
 })();
