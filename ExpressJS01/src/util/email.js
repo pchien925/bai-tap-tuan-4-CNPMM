@@ -6,7 +6,7 @@ const sendResetPasswordEmail = async (toEmail, resetUrl) => {
         service: "gmail",
         auth: {
             user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_APP_PASSWORD // dùng App Password
+            pass: process.env.EMAIL_APP_PASSWORD
         }
     });
 
